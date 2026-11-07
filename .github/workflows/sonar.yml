@@ -1,25 +1,37 @@
+
 name: Build
+
 on:
   push:
-    branches:
-      - main
-   pull_request:
-    branches: [main]
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
 jobs:
   sonarqube:
-    name: SonarQube
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      # Descargar código
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Cache SonarQube packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+          fetch-depth: 0
+
+      # Configurar Node.js
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
+          node-version: '12.22.12'
+
+      # Instalar, compilar y probar
+      - name: Build y pruebas
+        working-directory: frontend
+        run: |
+          npm install --no-audit
+          npm run build
+          npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+
+      # Analizar con SonarCloud
+      - name: SonarCloud
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
